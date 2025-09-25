@@ -17,7 +17,7 @@
   http://adamwhitcroft.com/climacons/
 
   Free Weather Icons by Svilen Petrov
-  https://www.behance.net/gallery/12410195/Free-Weather-Icons
+  https://www.behance.ee/gallery/12410195/Free-Weather-Icons
 
   Weather Icons by Thom
   (Designed for DuckDuckGo)
@@ -188,7 +188,11 @@ Module.register("MMM-NOAAForecastDeluxe", {
             return wrapper;
         }
 
-        if (!this.weatherData || (!this.weatherData.daily && !this.weatherData.hourly) || (this.weatherData.daily.length === 0 && this.weatherData.hourly.length === 0)) {
+        // Correctly access the nested data from the NOAA API response.
+        var dailyData = this.weatherData.forecast?.properties?.periods || [];
+        var hourlyData = this.weatherData.hourlyForecast?.properties?.periods || [];
+
+        if (dailyData.length === 0 && hourlyData.length === 0) {
             wrapper.innerHTML = "No valid weather data received.";
             wrapper.className = "dimmed light small";
             return wrapper;
@@ -198,8 +202,7 @@ Module.register("MMM-NOAAForecastDeluxe", {
         table.className = "small";
 
         // Display daily forecast
-        if (this.config.showDaily && this.weatherData.daily && this.weatherData.daily.length > 0) {
-            var dailyData = this.weatherData.daily;
+        if (this.config.showDaily && dailyData.length > 0) {
             dailyData.forEach((period, index) => {
                 var row = document.createElement("tr");
                 row.className = "forecast-row";
@@ -242,8 +245,7 @@ Module.register("MMM-NOAAForecastDeluxe", {
         }
 
         // Display hourly forecast
-        if (this.config.showHourly && this.weatherData.hourly && this.weatherData.hourly.length > 0) {
-            var hourlyData = this.weatherData.hourly;
+        if (this.config.showHourly && hourlyData.length > 0) {
             hourlyData.forEach((period, index) => {
                 var row = document.createElement("tr");
                 row.className = "hourly-row";
@@ -308,7 +310,6 @@ Module.register("MMM-NOAAForecastDeluxe", {
     // Override notification handler.
     notificationReceived: function(notification, payload, sender) {
         Log.log(`Received notification: ${notification} from sender: ${sender?.name}`);
-
         if (notification === "DOM_OBJECTS_CREATED") {
             Log.log("DOM_OBJECTS_CREATED notification received. Starting weather update.");
             this.updateWeather();
