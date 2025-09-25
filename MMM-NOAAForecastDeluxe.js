@@ -17,7 +17,7 @@
   http://adamwhitcroft.com/climacons/
 
   Free Weather Icons by Svilen Petrov
-  https://www.behance.ee/gallery/12410195/Free-Weather-Icons
+  https://www.behance.net/gallery/12410195/Free-Weather-Icons
 
   Weather Icons by Thom
   (Designed for DuckDuckGo)
@@ -172,7 +172,8 @@ Module.register("MMM-NOAAForecastDeluxe", {
     start: function() {
         Log.info("Starting module: " + this.name);
         Log.log("Module initialized. Will request data after initial delay.");
-        this.weatherData = null;
+        this.dailyData = [];
+        this.hourlyData = [];
         this.loaded = false;
         this.scheduleUpdate(this.config.initialLoadDelay);
         this.skycons = new Skycons({"color": "white"});
@@ -188,11 +189,7 @@ Module.register("MMM-NOAAForecastDeluxe", {
             return wrapper;
         }
 
-        // Correctly access the nested data from the NOAA API response.
-        var dailyData = this.weatherData.forecast?.properties?.periods || [];
-        var hourlyData = this.weatherData.hourlyForecast?.properties?.periods || [];
-
-        if (dailyData.length === 0 && hourlyData.length === 0) {
+        if (this.dailyData.length === 0 && this.hourlyData.length === 0) {
             wrapper.innerHTML = "No valid weather data received.";
             wrapper.className = "dimmed light small";
             return wrapper;
@@ -202,11 +199,11 @@ Module.register("MMM-NOAAForecastDeluxe", {
         table.className = "small";
 
         // Display daily forecast
-        if (this.config.showDaily && dailyData.length > 0) {
-            dailyData.forEach((period, index) => {
+        if (this.config.showDaily && this.dailyData.length > 0) {
+            this.dailyData.forEach((period, index) => {
                 var row = document.createElement("tr");
                 row.className = "forecast-row";
-                row.style.opacity = this.config.fade && this.config.fadePoint > 0 && index >= dailyData.length * this.config.fadePoint ? this.config.fadePoint + (1 - this.config.fadePoint) * (1 - index / dailyData.length) : 1;
+                row.style.opacity = this.config.fade && this.config.fadePoint > 0 && index >= this.dailyData.length * this.config.fadePoint ? this.config.fadePoint + (1 - this.config.fadePoint) * (1 - index / this.dailyData.length) : 1;
 
                 // Day Name
                 var dayCell = document.createElement("td");
@@ -245,11 +242,11 @@ Module.register("MMM-NOAAForecastDeluxe", {
         }
 
         // Display hourly forecast
-        if (this.config.showHourly && hourlyData.length > 0) {
-            hourlyData.forEach((period, index) => {
+        if (this.config.showHourly && this.hourlyData.length > 0) {
+            this.hourlyData.forEach((period, index) => {
                 var row = document.createElement("tr");
                 row.className = "hourly-row";
-                row.style.opacity = this.config.fade && this.config.fadePoint > 0 && index >= hourlyData.length * this.config.fadePoint ? this.config.fadePoint + (1 - this.config.fadePoint) * (1 - index / hourlyData.length) : 1;
+                row.style.opacity = this.config.fade && this.config.fadePoint > 0 && index >= this.hourlyData.length * this.config.fadePoint ? this.config.fadePoint + (1 - this.config.fadePoint) * (1 - index / this.hourlyData.length) : 1;
 
                 // Time
                 var timeCell = document.createElement("td");
@@ -321,10 +318,14 @@ Module.register("MMM-NOAAForecastDeluxe", {
         Log.log(`Received socket notification: ${notification} from sender (node_helper)`);
         if (notification === "NOAA_CALL_FORECAST_DATA" && payload.instanceId === this.identifier) {
             Log.log("Received weather data from node helper.");
-            // Log the full payload to inspect its contents
-            Log.log("Payload received:", JSON.stringify(payload, null, 2));
-            // NOAA helper returns data in the payload.payload property
-            this.weatherData = payload.payload;
+            
+            // Safely parse and store the daily and hourly data.
+            this.dailyData = payload.payload?.forecast?.properties?.periods || [];
+            this.hourlyData = payload.payload?.hourlyForecast?.properties?.periods || [];
+            
+            Log.log("Final Parsed Data: Daily:", JSON.stringify(this.dailyData, null, 2));
+            Log.log("Final Parsed Data: Hourly:", JSON.stringify(this.hourlyData, null, 2));
+
             this.loaded = true;
             this.updateDom(this.config.animationSpeed);
             this.scheduleUpdate();
