@@ -318,11 +318,14 @@ Module.register("MMM-NOAAForecastDeluxe", {
         Log.log(`Received socket notification: ${notification} from sender (node_helper)`);
         if (notification === "NOAA_CALL_FORECAST_DATA" && payload.instanceId === this.identifier) {
             Log.log("Received weather data from node helper.");
-            
+
+            // Add this line to see the raw data structure
+            Log.log("Raw payload.payload received:", JSON.stringify(payload.payload, null, 2));
+
             // Safely parse and store the daily and hourly data.
             this.dailyData = payload.payload?.forecast?.properties?.periods || [];
             this.hourlyData = payload.payload?.hourlyForecast?.properties?.periods || [];
-            
+
             Log.log("Final Parsed Data: Daily:", JSON.stringify(this.dailyData, null, 2));
             Log.log("Final Parsed Data: Hourly:", JSON.stringify(this.hourlyData, null, 2));
 
