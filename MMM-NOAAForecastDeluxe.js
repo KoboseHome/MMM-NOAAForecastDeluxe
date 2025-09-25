@@ -2,7 +2,7 @@
 
   MagicMirror² Module:
   MMM-AccuWeatherMapForecast
-  https://github.com/KoboseHome/MMM-NOAAForecastDeluxe
+  https://github.com/maxbethge/MMM-AccuWeatherMapForecastDeluxe
 
   Icons in use by this module:
 
@@ -171,6 +171,7 @@ Module.register("MMM-NOAAForecastDeluxe", {
     // Define start sequence.
     start: function() {
         Log.info("Starting module: " + this.name);
+        Log.log("Module initialized. Will request data after initial delay.");
         this.weatherData = null;
         this.loaded = false;
         this.scheduleUpdate(this.config.initialLoadDelay);
@@ -306,13 +307,16 @@ Module.register("MMM-NOAAForecastDeluxe", {
 
     // Override notification handler.
     notificationReceived: function(notification, payload, sender) {
+        Log.log(`Received notification: ${notification} from sender: ${sender?.name}`);
+
         if (notification === "DOM_OBJECTS_CREATED") {
+            Log.log("DOM_OBJECTS_CREATED notification received. Starting weather update.");
             this.updateWeather();
         }
 
-        // Change the notification name to match the new node helper
         if (sender && sender.name === "node_helper" && notification === "NOAA_CALL_FORECAST_DATA" && payload.instanceId === this.identifier) {
             Log.log("Received weather data from node helper.");
+            Log.log("Payload received:", payload);
             // NOAA helper returns data in the payload.payload property
             this.weatherData = payload.payload;
             this.loaded = true;
@@ -324,6 +328,7 @@ Module.register("MMM-NOAAForecastDeluxe", {
     // Method to request new weather data.
     updateWeather: function() {
         if (this.config.latitude && this.config.longitude) {
+            Log.log(`Sending request to node_helper for coordinates: ${this.config.latitude}, ${this.config.longitude}`);
             // Change the notification name and payload to match the new node helper
             this.sendSocketNotification("NOAA_CALL_FORECAST_GET", {
                 latitude: this.config.latitude,
@@ -331,7 +336,7 @@ Module.register("MMM-NOAAForecastDeluxe", {
                 instanceId: this.identifier,
             });
         } else {
-            Log.error("Missing latitude or longitude in config.");
+            Log.error("Missing latitude or longitude in config. Cannot fetch data.");
         }
     },
 
