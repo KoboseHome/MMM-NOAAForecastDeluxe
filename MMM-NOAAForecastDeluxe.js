@@ -313,9 +313,12 @@ Module.register("MMM-NOAAForecastDeluxe", {
             Log.log("DOM_OBJECTS_CREATED notification received. Starting weather update.");
             this.updateWeather();
         }
+    },
 
-        // Corrected the sender name check
-        if (sender && sender.name === "MMM-NOAAForecastDeluxe" && notification === "NOAA_CALL_FORECAST_DATA" && payload.instanceId === this.identifier) {
+    // Override socket notification handler.
+    socketNotificationReceived: function(notification, payload) {
+        Log.log(`Received socket notification: ${notification} from sender (node_helper)`);
+        if (notification === "NOAA_CALL_FORECAST_DATA" && payload.instanceId === this.identifier) {
             Log.log("Received weather data from node helper.");
             // Log the full payload to inspect its contents
             Log.log("Payload received:", JSON.stringify(payload, null, 2));
