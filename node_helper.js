@@ -1,18 +1,12 @@
 /*********************************
 
-  Node Helper for MMM-AccuWeatherForecastDeluxe.
+  Node Helper for MMM-NOAAForecastDeluxe.
 
-  This helper is responsible for the DarkSky-compatible data pull from AccuWeather.
-  At a minimum the API key, Latitude and Longitude parameters
-  must be provided.  If any of these are missing, the request
-  to AccuWeather will not be executed, and instead an error
-  will be output the the MagicMirror log.
+  This helper is responsible for the DarkSky-compatible data pull from NOAA.
 
-  Since AccuWeather has a very limited API quota on their free plan, there is an option to specify a second apiKey to double the quota.
+  Sample API:
 
-  The AccuWeather-compatible API request looks like this:
-
-    http://dataservice.accuweather.com/forecasts/v1/daily/5day/{locationKey}?apikey={apiKey}&details=true&metric={units=metric}
+    e.g. https://api.weather.gov/points/40.8932469,-74.0116536
 
 *********************************/
 
@@ -21,79 +15,112 @@ var needle = require("needle");
 var moment = require("moment");
 
 module.exports = NodeHelper.create({
+  start: function () {
+    console.log(
+      `Starting node_helper for module ${this.name}`
+    );
+  },
 
-    start: function() {
-        console.log("Starting node_helper for module [" + this.name + "]");
-    },
+  socketNotificationReceived: function (notification, payload) {
+    if (notification === "NOAA_CALL_FORECAST_GET") {
+      var self = this;
+      // use a browser-like User-Agent for requests
+      var needleOptions = {
+        follow_max: 3
+      };
 
-    socketNotificationReceived: function(notification, payload) {
-        if (notification === "ACCUWEATHER_ONE_CALL_FORECAST_GET") {
-            console.log("[MMM-AccuWeatherForecastDeluxe] " + notification );
-            var self = this;
+      if (
+        payload.latitude === null ||
+        payload.latitude === "" ||
+        payload.longitude === null ||
+        payload.longitude === ""
+      ) {
+        console.log(
+          `[MMM-NOAAForecastDeluxe] ${moment().format(
+            "D-MMM-YY HH:mm"
+          )} ** ERROR ** Latitude and/or longitude not provided.`
+        );
+      } else {
+        var url = `https://api.weather.gov/points/${payload.latitude},${payload.longitude}`;
 
-            if (payload.apikey == null || payload.apikey == "") {
-                console.log("[MMM-AccuWeatherForecastDeluxe] " + moment().format("D-MMM-YY HH:mm") + " ** ERROR ** No API key configured. Get an API key at http://accuweather.com");
-            } else if (payload.locationKey == null || payload.locationKey == "" ) {
-                console.log("[MMM-AccuWeatherForecastDeluxe] " + moment().format("D-MMM-YY HH:mm") + " ** ERROR ** LocationKey not provided.");
-            } else {
+        console.log(`[MMM-NOAAForecastDeluxe] Getting data: ${url}`);
+        needle.get(url, needleOptions, function (error, response, body) {
+          if (error || response.statusCode !== 200) {
+            console.error(
+              `[MMM-NOAAForecastDeluxe] ${moment().format(
+                "D-MMM-YY HH:mm"
+              )} ** ERROR ** Failed to get forecast URLs: ${error ? error.message : "HTTP Status Code " + response.statusCode}`
+            );
+            return;
+          }
 
-                var forecastUrl = payload.endpoint +
-                    "/" + payload.locationKey +
-                    "?apikey=" + payload.apikey +
-                    "&lang=" + payload.language + 
-                    "&metric=" +  ((payload.units == "imperial") ? "false" : "true")  +
-                    "&details=true";
+          let parsedBody;
+          try {
+            parsedBody = JSON.parse(body);
+          } catch (e) {
+            console.error(
+              `[MMM-NOAAForecastDeluxe] ${moment().format(
+                "D-MMM-YY HH:mm"
+              )} ** ERROR ** Failed to parse response body as JSON: ${e.message}`
+            );
+            return;
+          }
+          
+          if (parsedBody && parsedBody.properties && parsedBody.properties.forecastHourly) {
+            var forecastUrls = [{
+              key: "hourly",
+              url: parsedBody.properties.forecastHourly
+            }, {
+              key: "daily",
+              url: parsedBody.properties.forecast
+            }, {
+              key: "grid",
+              url: parsedBody.properties.forecastGridData
+            }];
 
-                var currentUrl = payload.endpointNow +
-                    "/" + payload.locationKey +
-                    "?apikey=" + ((payload.apikey2 == null || payload.apikey2 == "") ? payload.apikey : payload.apikey2)  +
-                    "&lang=" + payload.language + 
-                    "&metric=" +  ((payload.units == "imperial") ? "false" : "true")  +
-                    "&details=true";
-                    
-                var hourlyUrl = payload.endpointHourly +
-                    "/" + payload.locationKey +
-                    "?apikey=" + ((payload.apikey2 == null || payload.apikey2 == "") ? payload.apikey : payload.apikey2)  +
-                    "&lang=" + payload.language + 
-                    "&metric=" +  ((payload.units == "imperial") ? "false" : "true")  +
-                    "&details=true";
-                    
-                (async () => {
-                    var f = {};
-                    var fh = {};
-                    console.log("[MMM-AccuWeatherForecastDeluxe] Getting data: " + forecastUrl);
-                    const resp1 = await fetch(forecastUrl);
-                    const json1 = await resp1.json();
-                    //console.log("[MMM-AccuWeatherForecastDeluxe] url data: " + JSON.stringify(json1) );
-                    f = json1;
-                    f.instanceId = payload.instanceId;
-                    console.log("BB After Daily");
-                    
-                    console.log("[MMM-AccuWeatherForecastDeluxe] Getting data: " + currentUrl);
-                    const resp2 = await fetch(currentUrl);
-                    const json2 = await resp2.json();
-                    //console.log("[MMM-AccuWeatherForecastDeluxe] url2 data: " + JSON.stringify(json2) );
-                    f.Current = json2[0];    
-                    console.log("BB After Current");  
-                    
-                    console.log("[MMM-AccuWeatherForecastDeluxe] Getting data: " + hourlyUrl);
-                    const resp3 = await fetch(hourlyUrl);
-                    const json3 = await resp3.json();
-                    //console.log("[MMM-AccuWeatherForecastDeluxe] url3data: " + JSON.stringify(json2) );
-                    f.Hourly = json3; 
-                    console.log ("BB After Hourly");
-                    
-                    self.sendSocketNotification("ACCUWEATHER_ONE_CALL_FORECAST_DATA", f);
-                    console.log("[MMM-AccuWeatherForecastDeluxe] " + " after sendSocketNotification");
-                  })().catch(function (error) {
-                    // if there's an error, log it
-                    console.error("[MMM-AccuWeatherForecastDeluxe] " + " ** ERROR ** " + error);
-                });
-             
-                console.log("[MMM-AccuWeatherForecastDeluxe] after API calls");
-            }
-        }
-    },
+            var forecastData = {};
+            var completedRequests = 0;
+            forecastUrls.forEach(function (item) {
+              console.log(`[MMM-NOAAForecastDeluxe] Making request for ${item.key}: ${item.url}`);
+              needle.get(item.url, needleOptions, function (err, res, data) {
+                console.log(`[MMM-NOAAForecastDeluxe] Received data for ${item.key}. Data type: ${typeof data}`);
+                if (!err && res.statusCode === 200) {
+                  try {
+                    forecastData[item.key] = JSON.parse(data);
+                  } catch (parseError) {
+                    console.log(
+                      `[MMM-NOAAForecastDeluxe] ${moment().format(
+                        "D-MMM-YY HH:mm"
+                      )} ** ERROR ** Failed to parse JSON for ${item.key}: ${parseError.message}`
+                    );
+                  }
+                } else {
+                  console.log(
+                    `[MMM-NOAAForecastDeluxe] ${moment().format(
+                      "D-MMM-YY HH:mm"
+                    )} ** ERROR ** Failed to get ${item.key}: ${err}`
+                  );
+                }
 
-
+                completedRequests++;
+                if (completedRequests === forecastUrls.length) {
+                  console.log("[MMM-NOAAForecastDeluxe] All forecast data fetched. Sending to main module.");
+                  self.sendSocketNotification("NOAA_CALL_FORECAST_DATA", {
+                    instanceId: payload.instanceId,
+                    payload: forecastData
+                  });
+                }
+              });
+            });
+          } else {
+            console.error(
+              `[MMM-NOAAForecastDeluxe] ${moment().format(
+                "D-MMM-YY HH:mm"
+              )} ** ERROR ** API response does not contain forecast URLs.`
+            );
+          }
+        });
+      }
+    }
+  }
 });
