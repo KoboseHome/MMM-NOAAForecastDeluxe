@@ -188,8 +188,8 @@ Module.register("MMM-NOAAForecastDeluxe", {
             return wrapper;
         }
 
-        if (!this.weatherData) {
-            wrapper.innerHTML = "No weather data received.";
+        if (!this.weatherData || (!this.weatherData.daily && !this.weatherData.hourly) || (this.weatherData.daily.length === 0 && this.weatherData.hourly.length === 0)) {
+            wrapper.innerHTML = "No valid weather data received.";
             wrapper.className = "dimmed light small";
             return wrapper;
         }
@@ -316,7 +316,8 @@ Module.register("MMM-NOAAForecastDeluxe", {
 
         if (sender && sender.name === "node_helper" && notification === "NOAA_CALL_FORECAST_DATA" && payload.instanceId === this.identifier) {
             Log.log("Received weather data from node helper.");
-            Log.log("Payload received:", payload);
+            // Log the full payload to inspect its contents
+            Log.log("Payload received:", JSON.stringify(payload, null, 2));
             // NOAA helper returns data in the payload.payload property
             this.weatherData = payload.payload;
             this.loaded = true;
