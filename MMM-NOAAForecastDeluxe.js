@@ -314,7 +314,8 @@ Module.register("MMM-NOAAForecastDeluxe", {
             this.updateWeather();
         }
 
-        if (sender && sender.name === "node_helper" && notification === "NOAA_CALL_FORECAST_DATA" && payload.instanceId === this.identifier) {
+        // Corrected the sender name check
+        if (sender && sender.name === "MMM-NOAAForecastDeluxe" && notification === "NOAA_CALL_FORECAST_DATA" && payload.instanceId === this.identifier) {
             Log.log("Received weather data from node helper.");
             // Log the full payload to inspect its contents
             Log.log("Payload received:", JSON.stringify(payload, null, 2));
