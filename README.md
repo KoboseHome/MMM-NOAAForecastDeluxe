@@ -1,16 +1,6 @@
-# MMM-AccuWeatherForecastDeluxe
+# MMM-NOAAForecastDeluxe
 
-# >>>>>>>>>>>>> NOTES >>>>>>>>>>>>>
-*It looks like AccuWeather has finally turned off their free accounts and they only have a 14-day trial available without a paid account. This might be the end of the road for this module :(*
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-Known bugs:
-<ul>
-	<li>Setting showWindDirection and showWindGust to <code>true</code> breaks the layout in tile mode</li>
-</ul>
-
-
-This is a [MagicMirror²](https://magicmirror.builders) module that displays current, hourly and daily forecast information using data from the [AccuWeather](https://www.accuweather.com).
+This is a [MagicMirror²](https://magicmirror.builders) module that displays current, hourly and daily forecast information using data from NOAA.
 
 | Tiled Layouts | Bars Layout (daily forecast only) |
 | --- | --- |
@@ -19,25 +9,16 @@ This is a [MagicMirror²](https://magicmirror.builders) module that displays cur
 ## Installation
 
 1. Navigate into your MagicMirror's `modules` folder and execute
-   `git clone https://github.com/maxbethge/MMM-AccuWeatherForecastDeluxe`.
-2. Enter the new `MMM-AccuWeatherForecastDeluxe` directory and execute
+   `git clone https://github.com/KoboseHome/MMM-NOAAForecastDeluxe.git`.
+2. Enter the new `MMM-NOAAForecastDeluxe` directory and execute
    `npm install`.
 
 ## Configuration
 
 At a minimum you need to supply the following required configuration parameters:
 
-- `apikey`
-- `locationKey`
-
-You can request an API key to access data here:
-<https://developer.accuweather.com/packages>
-
-AccuWeather free tier no longer allows 1000 requests per day but instead limits you to 50.
-Free tier is fine -- by itself, a single instance of this module will not make 50 requests in one day with the default `updateInterval` of `120`. However, if the `updateInterval` is more frequent, create another Accuweather account to get a second API key and add to `apiKey2`.
-
-Find the locationKey using the Accuweather search API
-<http://dataservice.accuweather.com/locations/v1/cities/search?apikey={apiKey}&q={cityName}>
+- `latitude`
+- `longitude`
 
 ### Sample Configuration
 
