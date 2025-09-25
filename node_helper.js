@@ -105,6 +105,7 @@ module.exports = NodeHelper.create({
                 completedRequests++;
                 if (completedRequests === forecastUrls.length) {
                   console.log("[MMM-NOAAForecastDeluxe] All forecast data fetched. Sending to main module.");
+                  console.log("[MMM-NOAAWeatherForecast] Final payload:", JSON.stringify(forecastData));
                   self.sendSocketNotification("NOAA_CALL_FORECAST_DATA", {
                     instanceId: payload.instanceId,
                     payload: forecastData
